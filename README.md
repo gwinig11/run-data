@@ -21,7 +21,7 @@ FIT_WEBHOOK_SECRET=your-shared-secret
 BLOB_READ_WRITE_TOKEN=provided-by-vercel-blob
 ```
 
-Connect Vercel Blob storage to the project so runtime uploads are persisted.
+Connect a private Vercel Blob store to the project so runtime uploads are persisted without exposing FIT file URLs publicly.
 
 ## Make.com Webhook
 
