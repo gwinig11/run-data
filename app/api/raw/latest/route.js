@@ -12,7 +12,7 @@ export async function GET(request) {
   return new Response(raw.stream || raw.buffer, {
     headers: {
       "Content-Type": raw.contentType || "application/octet-stream",
-      "Content-Disposition": `inline; filename="${escapeHeader(raw.filename)}"`,
+      "Content-Disposition": `attachment; filename="${escapeHeader(raw.filename)}"`,
     },
   });
 }

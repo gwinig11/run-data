@@ -146,6 +146,10 @@ a[aria-disabled="true"] {
   padding: 0 14px;
 }
 
+.download-workout {
+  width: 190px;
+}
+
 .clear-form {
   display: flex;
   margin: 0;
