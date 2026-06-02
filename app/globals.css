@@ -243,8 +243,7 @@ a[aria-disabled="true"] {
 
 .route-leaflet-map {
   width: 100%;
-  aspect-ratio: 1120 / 360;
-  min-height: 280px;
+  height: clamp(460px, 68vh, 680px);
 }
 
 .route-map-card .leaflet-container {
@@ -291,6 +290,41 @@ a[aria-disabled="true"] {
   background: transparent;
   color: #0369a1;
   display: inline;
+}
+
+.mile-marker-icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+  background: #111827;
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 2px 7px rgb(15 23 42 / 28%);
+}
+
+.mile-marker-toggle {
+  position: absolute;
+  z-index: 500;
+  top: 16px;
+  right: 16px;
+  min-height: 36px;
+  border-color: rgb(100 116 139 / 26%);
+  background: rgb(255 255 255 / 92%);
+  color: #475569;
+  font-size: 0.9rem;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgb(15 23 42 / 14%);
+}
+
+.mile-marker-toggle.is-active {
+  border-color: #111827;
+  background: #111827;
+  color: #ffffff;
 }
 
 .chart-card {
