@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import CopyWorkoutButton from "app/components/CopyWorkoutButton.jsx";
 import DistanceChart from "app/components/DistanceChart.jsx";
 import UploadForm from "app/components/UploadForm.jsx";
 import { hasDashboardCookie, isConfiguredForProduction } from "lib/auth.js";
@@ -19,7 +20,7 @@ export default async function Page({ searchParams }) {
   return (
     <main>
       <div className="dashboard">
-        <Topbar filename={summary?.file?.name} />
+        <Topbar summary={summary} />
         <UploadForm />
         {summary ? <ActivitySummary summary={summary} /> : <EmptyState />}
       </div>
@@ -45,7 +46,8 @@ function UnlockScreen() {
   );
 }
 
-function Topbar({ filename }) {
+function Topbar({ summary }) {
+  const filename = summary?.file?.name;
   return (
     <div className="topbar">
       <div>
@@ -53,6 +55,7 @@ function Topbar({ filename }) {
         <div className="meta">{filename || "Upload a FIT file to build the dashboard."}</div>
       </div>
       <div className="actions">
+        <CopyWorkoutButton summary={summary} />
         <form className="clear-form" action="/api/clear" method="post">
           <button className="danger" type="submit" disabled={!filename}>Clear</button>
         </form>

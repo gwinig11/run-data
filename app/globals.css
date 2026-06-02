@@ -139,9 +139,15 @@ a[aria-disabled="true"] {
   color: #991b1b;
 }
 
+.copy-button {
+  border-color: #c7d2fe;
+  background: #eef2ff;
+  color: #3730a3;
+}
+
 .action-button,
 .actions button {
-  width: 96px;
+  width: 104px;
   height: 44px;
   padding: 0 14px;
 }
