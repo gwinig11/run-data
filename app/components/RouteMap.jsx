@@ -136,8 +136,8 @@ function addMileMarkers(L, layer, points) {
       icon: L.divIcon({
         className: "mile-marker-icon",
         html: String(marker.mile),
-        iconAnchor: [14, 14],
-        iconSize: [28, 28],
+        iconAnchor: [11, 11],
+        iconSize: [22, 22],
       }),
       interactive: false,
       keyboard: false,
