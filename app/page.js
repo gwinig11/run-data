@@ -66,7 +66,7 @@ function Topbar({ filename }) {
 function ActivitySummary({ summary }) {
   const detailCards = [
     ["Activity", summary.details.activity],
-    ["Date", summary.details.date],
+    ["Date", summary.details.date, "date"],
   ];
   const metricCards = [
     ["Duration", summary.metrics.duration.value, summary.metrics.duration.unit],
@@ -88,10 +88,10 @@ function ActivitySummary({ summary }) {
       <section>
         <h2>Details</h2>
         <div className="details">
-          {detailCards.map(([label, value]) => (
+          {detailCards.map(([label, value, type]) => (
             <div key={label}>
               <div className="label">{label}</div>
-              <div className="detail-value">{value}</div>
+              <div className={`detail-value${type === "date" ? " date-value" : ""}`}>{value}</div>
             </div>
           ))}
         </div>
