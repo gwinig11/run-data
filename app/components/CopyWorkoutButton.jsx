@@ -61,7 +61,7 @@ function buildWorkoutMarkdown(summary) {
       "",
       "| Distance | Heart Rate | Elevation | Speed | Power | Cadence |",
       "|---:|---:|---:|---:|---:|---:|",
-      ...summary.chart.tooltipPoints.map(chartPointRow),
+      ...sampleChartPoints(summary.chart.tooltipPoints, 0.25).map(chartPointRow),
       "",
     );
   }
@@ -102,4 +102,42 @@ function chartPointRow(point) {
     metrics.get("Power") || "-",
     metrics.get("Cadence") || "-",
   ].join(" | ").replace(/^/, "| ").replace(/$/, " |");
+}
+
+function sampleChartPoints(points = [], intervalMiles) {
+  if (!points.length) return [];
+
+  const sampled = [];
+  const used = new Set();
+  const maxDistance = parseDistanceMiles(points.at(-1).distance);
+
+  for (let target = 0; target <= maxDistance; target += intervalMiles) {
+    const index = nearestPointIndex(points, target);
+    if (!used.has(index)) {
+      sampled.push(points[index]);
+      used.add(index);
+    }
+  }
+
+  const finalIndex = points.length - 1;
+  if (!used.has(finalIndex)) sampled.push(points[finalIndex]);
+
+  return sampled;
+}
+
+function nearestPointIndex(points, targetMiles) {
+  let bestIndex = 0;
+  let bestDistance = Infinity;
+  points.forEach((point, index) => {
+    const distance = Math.abs(parseDistanceMiles(point.distance) - targetMiles);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      bestIndex = index;
+    }
+  });
+  return bestIndex;
+}
+
+function parseDistanceMiles(value) {
+  return Number.parseFloat(String(value).replace(" mi", "")) || 0;
 }
