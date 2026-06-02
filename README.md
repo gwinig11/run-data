@@ -23,6 +23,8 @@ BLOB_READ_WRITE_TOKEN=provided-by-vercel-blob
 
 Connect a private Vercel Blob store to the project so runtime uploads are persisted without exposing FIT file URLs publicly.
 
+Activity dates display in `America/New_York` by default. Set `ACTIVITY_TIME_ZONE` if you need a different IANA timezone.
+
 ## Make.com Webhook
 
 Use a push-only Make.com scenario. Dropbox detects a new `.fit` file, Make.com downloads the file bytes, then sends that file to:
