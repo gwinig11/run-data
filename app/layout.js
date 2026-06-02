@@ -1,7 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "FIT Activity Dashboard",
+  title: "Running Dashboard",
   description: "Latest FIT activity summary from Make.com uploads.",
 };
 
