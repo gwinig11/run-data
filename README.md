@@ -46,7 +46,7 @@ Body:
 - File content: downloaded Dropbox FIT binary
 - Also accepted: raw `application/octet-stream` with optional `x-filename`
 
-Uploads are limited to 4 MB to stay within Vercel Function request limits.
+Uploads are limited to 4 MB to stay within Vercel Function request limits. Each successful upload replaces the dashboard contents by pruning older stored activities.
 
 ## Dashboard
 
@@ -58,4 +58,4 @@ https://YOUR_VERCEL_DOMAIN/?key=YOUR_FIT_WEBHOOK_SECRET
 
 The app stores a secure HttpOnly cookie and redirects to `/`.
 
-The dashboard shows activity details, metrics, laps, and metrics-over-distance charts in miles. Use **Refresh** after Make.com pushes a workout, and **Download Latest Workout** to download the newest private FIT file.
+The dashboard shows the most recent Make.com or manual upload, including activity details, metrics, laps, and metrics-over-distance charts in miles. Use **Clear** to remove the stored workout data.

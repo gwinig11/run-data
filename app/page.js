@@ -53,11 +53,9 @@ function Topbar({ filename }) {
         <div className="meta">{filename || "Upload a FIT file to build the dashboard."}</div>
       </div>
       <div className="actions">
-        <a className="action-button download-workout" href="/api/raw/latest" aria-disabled={!filename}>Download Latest Workout</a>
         <form className="clear-form" action="/api/clear" method="post">
           <button className="danger" type="submit" disabled={!filename}>Clear</button>
         </form>
-        <a className="action-button primary" href="/">Refresh</a>
       </div>
     </div>
   );
