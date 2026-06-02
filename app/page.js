@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import CopyWorkoutButton from "app/components/CopyWorkoutButton.jsx";
 import DistanceChart from "app/components/DistanceChart.jsx";
+import RouteMap from "app/components/RouteMap.jsx";
 import UploadForm from "app/components/UploadForm.jsx";
 import { hasDashboardCookie, isConfiguredForProduction } from "lib/auth.js";
 import { getLatestActivity } from "lib/blob-store.js";
@@ -111,6 +112,7 @@ function ActivitySummary({ summary }) {
         </div>
       </section>
 
+      {summary.route ? <RouteMap route={summary.route} /> : null}
       {summary.chart ? <DistanceChart chart={summary.chart} /> : null}
       <Laps laps={summary.laps} />
     </>

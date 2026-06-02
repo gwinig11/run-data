@@ -53,6 +53,16 @@ function buildWorkoutMarkdown(summary) {
     "",
   ];
 
+  if (summary.route) {
+    lines.push(
+      "## Route",
+      `- Start: ${formatCoordinate(summary.route.start)}`,
+      `- End: ${formatCoordinate(summary.route.end)}`,
+      `- Route points shown on map: ${summary.route.points.length}`,
+      "",
+    );
+  }
+
   if (summary.chart) {
     lines.push(
       "## Metrics Over Distance",
@@ -140,4 +150,9 @@ function nearestPointIndex(points, targetMiles) {
 
 function parseDistanceMiles(value) {
   return Number.parseFloat(String(value).replace(" mi", "")) || 0;
+}
+
+function formatCoordinate(point) {
+  if (!point) return "-";
+  return `${point.latitude}, ${point.longitude}`;
 }
