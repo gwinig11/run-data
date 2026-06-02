@@ -21,7 +21,6 @@ export default async function Page({ searchParams }) {
     <main>
       <div className="dashboard">
         <Topbar summary={summary} />
-        <UploadForm />
         {summary ? <ActivitySummary summary={summary} /> : <EmptyState />}
       </div>
     </main>
@@ -55,6 +54,7 @@ function Topbar({ summary }) {
         <div className="meta">{filename || "Upload a FIT file to build the dashboard."}</div>
       </div>
       <div className="actions">
+        <UploadForm />
         <CopyWorkoutButton summary={summary} />
         <form className="clear-form" action="/api/clear" method="post">
           <button className="danger" type="submit" disabled={!filename}>Clear</button>

@@ -1,19 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 export default function UploadForm() {
-  const [hasFile, setHasFile] = useState(false);
+  const formRef = useRef(null);
+  const inputRef = useRef(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  function openFilePicker() {
+    inputRef.current?.click();
+  }
+
+  function uploadSelectedFile(event) {
+    if (!event.currentTarget.files.length) return;
+    setIsUploading(true);
+    formRef.current?.requestSubmit();
+  }
 
   return (
-    <form className="upload" action="/api/webhook/fit" method="post" encType="multipart/form-data">
+    <form ref={formRef} className="compact-upload" action="/api/webhook/fit" method="post" encType="multipart/form-data">
       <input
+        ref={inputRef}
+        className="visually-hidden-file"
         name="file"
         type="file"
         accept=".fit,application/octet-stream"
-        onChange={(event) => setHasFile(event.currentTarget.files.length > 0)}
+        onChange={uploadSelectedFile}
       />
-      <button type="submit" disabled={!hasFile}>Upload</button>
+      <button type="button" onClick={openFilePicker} disabled={isUploading}>
+        {isUploading ? "Uploading" : "Upload"}
+      </button>
     </form>
   );
 }
