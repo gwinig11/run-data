@@ -72,9 +72,9 @@ function ActivitySummary({ summary }) {
   const metricCards = [
     ["Duration", summary.metrics.duration.value, summary.metrics.duration.unit],
     ["Distance", summary.metrics.distance.value, summary.metrics.distance.unit],
+    ["Avg Pace", summary.metrics.avgPace.value, summary.metrics.avgPace.unit],
     ["Avg HR", summary.metrics.avgHeartRate.value, summary.metrics.avgHeartRate.unit],
     ["Max HR", summary.metrics.maxHeartRate.value, summary.metrics.maxHeartRate.unit],
-    ["Avg Pace", summary.metrics.avgPace.value, summary.metrics.avgPace.unit],
     ["Avg Speed", summary.metrics.avgSpeed.value, summary.metrics.avgSpeed.unit],
     ["Max Speed", summary.metrics.maxSpeed.value, summary.metrics.maxSpeed.unit],
     ["Avg Power", summary.metrics.avgPower.value, summary.metrics.avgPower.unit],
