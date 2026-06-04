@@ -529,6 +529,43 @@ td {
 
 tbody tr:last-child td { border-bottom: 0; }
 
+.history-section {
+  padding-bottom: 0;
+}
+
+.history-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.history-table a {
+  display: inline;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--accent);
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.filename-cell {
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  margin-top: 24px;
+}
+
 .empty {
   display: grid;
   min-height: 360px;
@@ -555,6 +592,11 @@ tbody tr:last-child td { border-bottom: 0; }
   .compact-upload button,
   .unlock-form button,
   .unlock-form input { width: 100%; }
+  .pagination {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .pagination a { width: 100%; }
 }
 
 @media (max-width: 560px) {

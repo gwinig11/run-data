@@ -1,0 +1,101 @@
+import DistanceChart from "app/components/DistanceChart.jsx";
+import RouteMap from "app/components/RouteMap.jsx";
+
+export default function ActivitySummary({ summary }) {
+  const detailCards = [
+    ["Activity", summary.details.activity],
+    ["Date", summary.details.date, "date"],
+  ];
+  const metricCards = [
+    ["Duration", summary.metrics.duration.value, summary.metrics.duration.unit],
+    ["Distance", summary.metrics.distance.value, summary.metrics.distance.unit],
+    ["Avg Pace", summary.metrics.avgPace.value, summary.metrics.avgPace.unit],
+    ["Avg HR", summary.metrics.avgHeartRate.value, summary.metrics.avgHeartRate.unit],
+    ["Max HR", summary.metrics.maxHeartRate.value, summary.metrics.maxHeartRate.unit],
+    ["Avg Speed", summary.metrics.avgSpeed.value, summary.metrics.avgSpeed.unit],
+    ["Max Speed", summary.metrics.maxSpeed.value, summary.metrics.maxSpeed.unit],
+    ["Avg Power", summary.metrics.avgPower.value, summary.metrics.avgPower.unit],
+    ["Max Power", summary.metrics.maxPower.value, summary.metrics.maxPower.unit],
+    ["Elevation", summary.metrics.elevation.value, summary.metrics.elevation.unit],
+    ["Calories", summary.metrics.calories.value, summary.metrics.calories.unit],
+    ["Avg Cadence", summary.metrics.avgCadence.value, summary.metrics.avgCadence.unit],
+  ];
+
+  return (
+    <>
+      <section>
+        <h2>Details</h2>
+        <div className="details">
+          {detailCards.map(([label, value, type]) => (
+            <div key={label}>
+              <div className="label">{label}</div>
+              <div className={`detail-value${type === "date" ? " date-value" : ""}`}>{value}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <h2>Metrics</h2>
+        <div className="metrics">
+          {metricCards.map(([label, value, unit]) => (
+            <div className="metric-card" key={label}>
+              <div className="label">{label}</div>
+              <div className="metric-value">{value}</div>
+              <div className="unit">{unit}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {summary.route ? <RouteMap route={summary.route} /> : null}
+      {summary.chart ? <DistanceChart chart={summary.chart} /> : null}
+      <Laps laps={summary.laps} />
+    </>
+  );
+}
+
+function Laps({ laps }) {
+  if (!laps?.length) return null;
+
+  return (
+    <section>
+      <details className="laps-panel" open>
+        <summary>
+          <span className="laps-title"><span className="flag" aria-hidden="true">⚑</span>Laps <span className="row-count">({laps.length} rows)</span></span>
+          <span className="chevron" aria-hidden="true" />
+        </summary>
+        <div className="laps-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Duration</th>
+                <th>Distance</th>
+                <th>Avg Speed</th>
+                <th>Max Speed</th>
+                <th>Avg HR</th>
+                <th>Max HR</th>
+                <th>Avg Cadence</th>
+              </tr>
+            </thead>
+            <tbody>
+              {laps.map((lap) => (
+                <tr key={lap.index}>
+                  <td>{lap.index}</td>
+                  <td>{lap.duration}</td>
+                  <td>{lap.distance}</td>
+                  <td>{lap.avgSpeed}</td>
+                  <td>{lap.maxSpeed}</td>
+                  <td>{lap.avgHeartRate}</td>
+                  <td>{lap.maxHeartRate}</td>
+                  <td>{lap.avgCadence}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </section>
+  );
+}

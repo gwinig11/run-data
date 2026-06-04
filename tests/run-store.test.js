@@ -1,0 +1,163 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { createRunStore } from "../lib/run-store.js";
+
+test("createRunFromUpload inserts one run and deduplicates by file hash", async () => {
+  const repository = createMemoryRepository();
+  const rawStorage = createMemoryRawStorage();
+  const store = createRunStore({
+    repository,
+    rawStorage,
+    idFactory: sequence(["run-1", "run-duplicate"]),
+    now: () => new Date("2026-06-01T12:00:00.000Z"),
+  });
+
+  const first = await store.createRunFromUpload({
+    buffer: fitBuffer(1),
+    filename: "first.fit",
+    contentType: "application/octet-stream",
+  });
+  const duplicate = await store.createRunFromUpload({
+    buffer: fitBuffer(1),
+    filename: "retry.fit",
+    contentType: "application/octet-stream",
+  });
+
+  assert.equal(first.file.id, "run-1");
+  assert.equal(duplicate.file.id, "run-1");
+  assert.equal(repository.rows.length, 1);
+  assert.equal(rawStorage.files.size, 1);
+});
+
+test("latest and listRuns return runs in newest-first order", async () => {
+  const repository = createMemoryRepository();
+  const store = createRunStore({
+    repository,
+    rawStorage: createMemoryRawStorage(),
+    idFactory: sequence(["run-old", "run-new"]),
+    now: sequence([
+      () => new Date("2026-06-01T12:00:00.000Z"),
+      () => new Date("2026-06-02T12:00:00.000Z"),
+    ]),
+  });
+
+  await store.createRunFromUpload({ buffer: fitBuffer(1), filename: "old.fit" });
+  await store.createRunFromUpload({ buffer: fitBuffer(2), filename: "new.fit" });
+
+  const latest = await store.getLatestRun();
+  const list = await store.listRuns();
+
+  assert.equal(latest.file.id, "run-new");
+  assert.deepEqual(list.map((run) => run.file.id), ["run-new", "run-old"]);
+});
+
+test("getRawRunFile returns the stored FIT bytes", async () => {
+  const repository = createMemoryRepository();
+  const rawStorage = createMemoryRawStorage();
+  const store = createRunStore({
+    repository,
+    rawStorage,
+    idFactory: sequence(["run-raw"]),
+    now: () => new Date("2026-06-01T12:00:00.000Z"),
+  });
+  const buffer = fitBuffer(7);
+
+  const run = await store.createRunFromUpload({ buffer, filename: "raw.fit" });
+  const raw = await store.getRawRunFile(run.file.id);
+
+  assert.equal(raw.filename, "raw.fit");
+  assert.equal(Buffer.compare(raw.buffer, buffer), 0);
+});
+
+function createMemoryRepository() {
+  const rows = [];
+
+  return {
+    rows,
+    async findByHash(fileHash) {
+      return rows.find((row) => row.file_hash === fileHash) || null;
+    },
+    async insertRun(record) {
+      if (rows.some((row) => row.file_hash === record.fileHash)) return null;
+      const row = {
+        id: record.id,
+        file_hash: record.fileHash,
+        source: record.source,
+        filename: record.filename,
+        content_type: record.contentType,
+        file_size: record.fileSize,
+        raw_storage: record.rawStorage,
+        raw_blob_path: record.rawPath,
+        uploaded_at: record.uploadedAt,
+        received_at: record.receivedAt,
+        activity_type: record.activityType,
+        activity_date: record.activityDate,
+        distance_miles: record.distanceMiles,
+        duration_text: record.durationText,
+        avg_pace: record.avgPace,
+        avg_heart_rate: record.avgHeartRate,
+        summary_json: record.summaryJson,
+        created_at: record.receivedAt,
+      };
+      rows.push(row);
+      return row;
+    },
+    async findLatest() {
+      return [...rows].sort(newestFirst)[0] || null;
+    },
+    async findById(id) {
+      return rows.find((row) => row.id === id) || null;
+    },
+    async listRuns({ limit = 25, offset = 0 } = {}) {
+      return [...rows].sort(newestFirst).slice(offset, offset + limit);
+    },
+    async countRuns() {
+      return rows.length;
+    },
+  };
+}
+
+function createMemoryRawStorage() {
+  const files = new Map();
+  return {
+    provider: "memory",
+    files,
+    pathFor({ runId, filename }) {
+      return `activities/${runId}/${filename}`;
+    },
+    async save({ rawPath, buffer, contentType }) {
+      files.set(rawPath, { buffer, contentType });
+    },
+    async get(row) {
+      const file = files.get(row.raw_blob_path);
+      if (!file) return null;
+      return {
+        buffer: file.buffer,
+        filename: row.filename,
+        contentType: row.content_type,
+      };
+    },
+  };
+}
+
+function newestFirst(left, right) {
+  return String(right.uploaded_at).localeCompare(String(left.uploaded_at));
+}
+
+function fitBuffer(marker) {
+  const buffer = Buffer.alloc(14);
+  buffer.writeUInt8(14, 0);
+  buffer.writeUInt32LE(0, 4);
+  buffer.write(".FIT", 8);
+  buffer[12] = marker;
+  return buffer;
+}
+
+function sequence(values) {
+  let index = 0;
+  return () => {
+    const value = values[Math.min(index, values.length - 1)];
+    index += 1;
+    return typeof value === "function" ? value() : value;
+  };
+}

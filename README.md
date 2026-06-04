@@ -1,6 +1,6 @@
 # FIT Activity Dashboard
 
-A Next.js app for displaying the latest FIT activity uploaded by Make.com.
+A Next.js app for storing and reviewing historical FIT activity uploads from Make.com.
 
 ## Local Development
 
@@ -10,20 +10,35 @@ npm run dev
 
 Open `http://localhost:3000/?key=dev-secret`.
 
-If `FIT_WEBHOOK_SECRET` is not set, local development uses `dev-secret`. If `BLOB_READ_WRITE_TOKEN` is not set, local development stores the latest upload in `uploads/`.
+If `FIT_WEBHOOK_SECRET` is not set, local development uses `dev-secret`. Historical storage requires `DATABASE_URL`. If `BLOB_READ_WRITE_TOKEN` is not set, raw FIT files are stored under the ignored local `uploads/` directory.
 
-## Vercel Environment
+## Database Setup
 
-Set these environment variables in Vercel:
+Provision Neon Postgres, preferably through the Vercel Marketplace for the deployed project, then set:
 
 ```text
+DATABASE_URL=your-neon-connection-string
 FIT_WEBHOOK_SECRET=your-shared-secret
 BLOB_READ_WRITE_TOKEN=provided-by-vercel-blob
 ```
 
-Connect a private Vercel Blob store to the project so runtime uploads are persisted without exposing FIT file URLs publicly.
+Create or refresh the `runs` table:
 
-Activity dates display in `America/New_York` by default. Set `ACTIVITY_TIME_ZONE` if you need a different IANA timezone.
+```bash
+npm run db:init
+```
+
+The schema also lives in `sql/runs.sql` for manual review. Runtime code lazily ensures the same table/indexes exist before reads and writes.
+
+## Legacy Import
+
+If this app already has a latest-only upload from the previous Blob/local storage model, import it once after configuring `DATABASE_URL`:
+
+```bash
+npm run import:legacy
+```
+
+The import is rerunnable. It stores the legacy FIT through the same historical path with `source = "legacy-import"`, and SHA-256 file-hash deduplication prevents duplicate rows.
 
 ## Make.com Webhook
 
@@ -46,7 +61,7 @@ Body:
 - File content: downloaded Dropbox FIT binary
 - Also accepted: raw `application/octet-stream` with optional `x-filename`
 
-Uploads are limited to 4 MB to stay within Vercel Function request limits. Each successful upload replaces the dashboard contents by pruning older stored activities.
+Uploads are limited to 4 MB. Each successful unique upload creates one permanent historical run row and stores the original FIT file privately. If Make.com retries the same FIT bytes, the app returns the existing run instead of creating a duplicate.
 
 ## Dashboard
 
@@ -58,4 +73,10 @@ https://YOUR_VERCEL_DOMAIN/?key=YOUR_FIT_WEBHOOK_SECRET
 
 The app stores a secure HttpOnly cookie and redirects to `/`.
 
-The dashboard shows the most recent Make.com or manual upload, including activity details, metrics, laps, and metrics-over-distance charts in miles. Use **Clear** to remove the stored workout data.
+- `/` shows the newest stored run.
+- `/runs` shows paginated run history.
+- `/runs/[id]` shows a single historical run.
+- `/api/latest` and `/api/raw/latest` remain compatibility routes backed by the newest stored run.
+- `/api/raw/[id]` downloads a specific authenticated FIT file.
+
+The old global Clear action is retired because history is now permanent.

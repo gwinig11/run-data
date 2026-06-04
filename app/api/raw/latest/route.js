@@ -1,22 +1,13 @@
-import { getLatestRawFile } from "lib/blob-store.js";
+import { createRawLatestGetHandler } from "lib/api-handlers.js";
 import { hasMutationAccess, unauthorizedJson } from "lib/auth.js";
+import { getLatestRun, getRawRunFile } from "lib/run-store.js";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET(request) {
-  if (!(await hasMutationAccess(request))) return unauthorizedJson();
-  const raw = await getLatestRawFile();
-  if (!raw) return new Response("No file uploaded yet.", { status: 404 });
-
-  return new Response(raw.stream || raw.buffer, {
-    headers: {
-      "Content-Type": raw.contentType || "application/octet-stream",
-      "Content-Disposition": `attachment; filename="${escapeHeader(raw.filename)}"`,
-    },
-  });
-}
-
-function escapeHeader(value) {
-  return String(value).replaceAll(/["\r\n]/g, "_");
-}
+export const GET = createRawLatestGetHandler({
+  hasMutationAccessImpl: hasMutationAccess,
+  unauthorizedJsonImpl: unauthorizedJson,
+  getLatestRunImpl: getLatestRun,
+  getRawRunFileImpl: getRawRunFile,
+});
