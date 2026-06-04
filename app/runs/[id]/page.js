@@ -32,6 +32,7 @@ export default async function RunDetailPage({ params, searchParams }) {
             <div className="meta">{summary.details?.date || summary.file.uploadedAt}</div>
           </div>
           <div className="actions">
+            <Link className="action-button" href="/dashboard">Dashboard</Link>
             <Link className="action-button" href="/runs">History</Link>
             <CopyWorkoutButton summary={summary} />
           </div>

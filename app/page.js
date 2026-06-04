@@ -40,6 +40,7 @@ function Topbar({ summary }) {
         <div className="meta">{filename || "Upload a FIT file to build the dashboard."}</div>
       </div>
       <div className="actions">
+        <Link className="action-button" href="/dashboard">Dashboard</Link>
         <Link className="action-button" href="/runs">History</Link>
         <CopyWorkoutButton summary={summary} />
       </div>

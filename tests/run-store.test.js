@@ -13,12 +13,12 @@ test("createRunFromUpload inserts one run and deduplicates by file hash", async 
   });
 
   const first = await store.createRunFromUpload({
-    buffer: fitBuffer(1),
+    buffer: fitBufferWithSport(1, 1),
     filename: "first.fit",
     contentType: "application/octet-stream",
   });
   const duplicate = await store.createRunFromUpload({
-    buffer: fitBuffer(1),
+    buffer: fitBufferWithSport(1, 1),
     filename: "retry.fit",
     contentType: "application/octet-stream",
   });
@@ -27,6 +27,24 @@ test("createRunFromUpload inserts one run and deduplicates by file hash", async 
   assert.equal(duplicate.file.id, "run-1");
   assert.equal(repository.rows.length, 1);
   assert.equal(rawStorage.files.size, 1);
+});
+
+test("createRunFromUpload rejects non-running activities before saving", async () => {
+  const repository = createMemoryRepository();
+  const rawStorage = createMemoryRawStorage();
+  const store = createRunStore({
+    repository,
+    rawStorage,
+    idFactory: sequence(["run-cycling"]),
+    now: () => new Date("2026-06-01T12:00:00.000Z"),
+  });
+
+  await assert.rejects(
+    () => store.createRunFromUpload({ buffer: fitBufferWithSport(2), filename: "bike.fit" }),
+    /Only running FIT files are supported/,
+  );
+  assert.equal(repository.rows.length, 0);
+  assert.equal(rawStorage.files.size, 0);
 });
 
 test("latest and listRuns return runs in newest-first order", async () => {
@@ -41,8 +59,8 @@ test("latest and listRuns return runs in newest-first order", async () => {
     ]),
   });
 
-  await store.createRunFromUpload({ buffer: fitBuffer(1), filename: "old.fit" });
-  await store.createRunFromUpload({ buffer: fitBuffer(2), filename: "new.fit" });
+  await store.createRunFromUpload({ buffer: fitBufferWithSport(1, 1), filename: "old.fit" });
+  await store.createRunFromUpload({ buffer: fitBufferWithSport(1, 2), filename: "new.fit" });
 
   const latest = await store.getLatestRun();
   const list = await store.listRuns();
@@ -64,9 +82,9 @@ test("latest and listRuns sort by activity date before upload date", async () =>
     ]),
   });
 
-  await store.createRunFromUpload({ buffer: fitBuffer(1), filename: "first-upload.fit" });
-  await store.createRunFromUpload({ buffer: fitBuffer(2), filename: "second-upload.fit" });
-  await store.createRunFromUpload({ buffer: fitBuffer(3), filename: "no-activity-date.fit" });
+  await store.createRunFromUpload({ buffer: fitBufferWithSport(1, 1), filename: "first-upload.fit" });
+  await store.createRunFromUpload({ buffer: fitBufferWithSport(1, 2), filename: "second-upload.fit" });
+  await store.createRunFromUpload({ buffer: fitBufferWithSport(1, 3), filename: "no-activity-date.fit" });
   repository.rows[0].activity_date = "Jun 2, 2026, 08:00 AM";
   repository.rows[1].activity_date = "May 31, 2026, 08:00 AM";
   repository.rows[2].activity_date = null;
@@ -91,7 +109,7 @@ test("getRawRunFile returns the stored FIT bytes", async () => {
     idFactory: sequence(["run-raw"]),
     now: () => new Date("2026-06-01T12:00:00.000Z"),
   });
-  const buffer = fitBuffer(7);
+  const buffer = fitBufferWithSport(1, 7);
 
   const run = await store.createRunFromUpload({ buffer, filename: "raw.fit" });
   const raw = await store.getRawRunFile(run.file.id);
@@ -142,6 +160,9 @@ function createMemoryRepository() {
     async listRuns({ limit = 25, offset = 0 } = {}) {
       return [...rows].sort(newestFirst).slice(offset, offset + limit);
     },
+    async listAllRuns() {
+      return [...rows].sort(newestFirst);
+    },
     async countRuns() {
       return rows.length;
     },
@@ -190,12 +211,17 @@ function activitySortTime(value) {
   return Number.isFinite(time) ? time : null;
 }
 
-function fitBuffer(marker) {
-  const buffer = Buffer.alloc(14);
+function fitBufferWithSport(sport, marker = 0) {
+  const data = Buffer.from([
+    0x40, 0x00, 0x00, 0x12, 0x00, 0x01, 0x05, 0x01, 0x02,
+    0x00, sport,
+  ]);
+  const buffer = Buffer.alloc(14 + data.length + 1);
   buffer.writeUInt8(14, 0);
-  buffer.writeUInt32LE(0, 4);
+  buffer.writeUInt32LE(data.length, 4);
   buffer.write(".FIT", 8);
-  buffer[12] = marker;
+  data.copy(buffer, 14);
+  buffer[14 + data.length] = marker;
   return buffer;
 }
 
