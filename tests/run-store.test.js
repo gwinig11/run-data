@@ -51,6 +51,37 @@ test("latest and listRuns return runs in newest-first order", async () => {
   assert.deepEqual(list.map((run) => run.file.id), ["run-new", "run-old"]);
 });
 
+test("latest and listRuns sort by activity date before upload date", async () => {
+  const repository = createMemoryRepository();
+  const store = createRunStore({
+    repository,
+    rawStorage: createMemoryRawStorage(),
+    idFactory: sequence(["run-uploaded-first", "run-uploaded-second", "run-no-activity-date"]),
+    now: sequence([
+      () => new Date("2026-06-03T12:00:00.000Z"),
+      () => new Date("2026-06-04T12:00:00.000Z"),
+      () => new Date("2026-06-05T12:00:00.000Z"),
+    ]),
+  });
+
+  await store.createRunFromUpload({ buffer: fitBuffer(1), filename: "first-upload.fit" });
+  await store.createRunFromUpload({ buffer: fitBuffer(2), filename: "second-upload.fit" });
+  await store.createRunFromUpload({ buffer: fitBuffer(3), filename: "no-activity-date.fit" });
+  repository.rows[0].activity_date = "Jun 2, 2026, 08:00 AM";
+  repository.rows[1].activity_date = "May 31, 2026, 08:00 AM";
+  repository.rows[2].activity_date = null;
+
+  const latest = await store.getLatestRun();
+  const list = await store.listRuns();
+
+  assert.equal(latest.file.id, "run-uploaded-first");
+  assert.deepEqual(list.map((run) => run.file.id), [
+    "run-uploaded-first",
+    "run-uploaded-second",
+    "run-no-activity-date",
+  ]);
+});
+
 test("getRawRunFile returns the stored FIT bytes", async () => {
   const repository = createMemoryRepository();
   const rawStorage = createMemoryRawStorage();
@@ -141,7 +172,22 @@ function createMemoryRawStorage() {
 }
 
 function newestFirst(left, right) {
-  return String(right.uploaded_at).localeCompare(String(left.uploaded_at));
+  const leftActivityDate = activitySortTime(left.activity_date);
+  const rightActivityDate = activitySortTime(right.activity_date);
+  if (leftActivityDate !== null && rightActivityDate !== null) {
+    return rightActivityDate - leftActivityDate
+      || String(right.uploaded_at).localeCompare(String(left.uploaded_at))
+      || String(right.created_at).localeCompare(String(left.created_at));
+  }
+  if (leftActivityDate !== rightActivityDate) return leftActivityDate !== null ? -1 : 1;
+  return String(right.uploaded_at).localeCompare(String(left.uploaded_at))
+    || String(right.created_at).localeCompare(String(left.created_at));
+}
+
+function activitySortTime(value) {
+  if (!value) return null;
+  const time = Date.parse(value);
+  return Number.isFinite(time) ? time : null;
 }
 
 function fitBuffer(marker) {

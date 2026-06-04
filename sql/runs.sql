@@ -21,4 +21,4 @@ CREATE TABLE IF NOT EXISTS runs (
 );
 
 CREATE INDEX IF NOT EXISTS runs_uploaded_at_idx ON runs (uploaded_at DESC, created_at DESC);
-CREATE INDEX IF NOT EXISTS runs_activity_date_idx ON runs (activity_date);
+CREATE INDEX IF NOT EXISTS runs_activity_date_idx ON runs (activity_date DESC);
