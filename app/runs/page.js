@@ -35,9 +35,6 @@ export default async function RunsPage({ searchParams }) {
             <h1>Run History</h1>
             <div className="meta">{total ? `${total} stored ${total === 1 ? "run" : "runs"}` : "No runs stored yet."}</div>
           </div>
-          <div className="actions">
-            <Link className="action-button" href="/">Latest</Link>
-          </div>
         </div>
 
         {runs.length ? <RunTable runs={runs} /> : <EmptyHistory />}

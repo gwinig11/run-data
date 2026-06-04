@@ -4,7 +4,6 @@ import ActivitySummary from "app/components/ActivitySummary.jsx";
 import CopyWorkoutButton from "app/components/CopyWorkoutButton.jsx";
 import DatabaseSetupNotice from "app/components/DatabaseSetupNotice.jsx";
 import UnlockScreen from "app/components/UnlockScreen.jsx";
-import UploadForm from "app/components/UploadForm.jsx";
 import { hasDashboardCookie } from "lib/auth.js";
 import { hasDatabaseUrl } from "lib/db.js";
 import { getLatestRun } from "lib/run-store.js";
@@ -42,8 +41,6 @@ function Topbar({ summary }) {
       </div>
       <div className="actions">
         <Link className="action-button" href="/runs">History</Link>
-        {summary?.file?.rawUrl ? <a className="action-button" href={summary.file.rawUrl}>FIT</a> : null}
-        <UploadForm />
         <CopyWorkoutButton summary={summary} />
       </div>
     </div>
