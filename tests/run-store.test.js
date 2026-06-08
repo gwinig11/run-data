@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import test from "node:test";
-import { createRunStore } from "../lib/run-store.js";
+import { createRunStore, rowToRun } from "../lib/run-store.js";
 
 test("createRunFromUpload inserts one run and deduplicates by file hash", async () => {
   const repository = createMemoryRepository();
@@ -45,6 +46,104 @@ test("createRunFromUpload rejects non-running activities before saving", async (
   );
   assert.equal(repository.rows.length, 0);
   assert.equal(rawStorage.files.size, 0);
+});
+
+test("createRunFromUpload labels treadmill runs as indoor runs", async () => {
+  const repository = createMemoryRepository();
+  const store = createRunStore({
+    repository,
+    rawStorage: createMemoryRawStorage(),
+    idFactory: sequence(["run-indoor"]),
+    now: () => new Date("2026-06-01T12:00:00.000Z"),
+  });
+
+  const run = await store.createRunFromUpload({ buffer: fitBufferWithSport(1, 1, 1), filename: "treadmill.fit" });
+
+  assert.equal(run.details.activity, "Indoor Run");
+  assert.equal(repository.rows[0].activity_type, "Indoor Run");
+});
+
+test("createRunFromUpload refreshes duplicate runs when parsing changes", async () => {
+  const repository = createMemoryRepository();
+  const buffer = fitBufferWithSport(1, 1, 1);
+  repository.rows.push(storedRunRow({
+    id: "run-existing-indoor",
+    fileHash: createHash("sha256").update(buffer).digest("hex"),
+    summary: {
+      file: {
+        id: "run-existing-indoor",
+        name: "treadmill.fit",
+        size: buffer.length,
+        contentType: "application/octet-stream",
+        uploadedAt: "2026-06-01T12:00:00.000Z",
+        rawPath: "activities/run-existing-indoor/treadmill.fit",
+        rawUrl: "/api/raw/run-existing-indoor",
+      },
+      details: { activity: "Running", date: "Jun 1, 2026, 08:00 AM" },
+      metrics: {},
+    },
+  }));
+  const store = createRunStore({
+    repository,
+    rawStorage: createMemoryRawStorage(),
+    idFactory: sequence(["unused-id"]),
+    now: () => new Date("2026-06-02T12:00:00.000Z"),
+  });
+
+  const run = await store.createRunFromUpload({ buffer, filename: "treadmill.fit" });
+
+  assert.equal(run.file.id, "run-existing-indoor");
+  assert.equal(run.details.activity, "Indoor Run");
+  assert.equal(repository.rows[0].activity_type, "Indoor Run");
+  assert.equal(repository.rows[0].summary_json.details.activity, "Indoor Run");
+});
+
+test("rowToRun labels legacy route-less running summaries as indoor runs", () => {
+  const summary = {
+    file: {
+      id: "legacy-indoor",
+      name: "legacy.fit",
+      size: 123,
+      contentType: "application/octet-stream",
+      uploadedAt: "2026-06-01T12:00:00.000Z",
+      rawPath: "activities/legacy-indoor/legacy.fit",
+    },
+    details: { activity: "Running", date: "Jun 1, 2026, 08:00 AM" },
+    metrics: {},
+    route: null,
+  };
+
+  const run = rowToRun(storedRunRow({
+    id: "legacy-indoor",
+    fileHash: "hash",
+    summary,
+  }));
+
+  assert.equal(run.details.activity, "Indoor Run");
+});
+
+test("rowToRun keeps outdoor running summaries unchanged when route exists", () => {
+  const summary = {
+    file: {
+      id: "outdoor-run",
+      name: "outdoor.fit",
+      size: 123,
+      contentType: "application/octet-stream",
+      uploadedAt: "2026-06-01T12:00:00.000Z",
+      rawPath: "activities/outdoor-run/outdoor.fit",
+    },
+    details: { activity: "Running", date: "Jun 1, 2026, 08:00 AM" },
+    metrics: {},
+    route: { points: [{ latitude: 1, longitude: 2 }] },
+  };
+
+  const run = rowToRun(storedRunRow({
+    id: "outdoor-run",
+    fileHash: "hash",
+    summary,
+  }));
+
+  assert.equal(run.details.activity, "Running");
 });
 
 test("latest and listRuns return runs in newest-first order", async () => {
@@ -151,6 +250,19 @@ function createMemoryRepository() {
       rows.push(row);
       return row;
     },
+    async updateRunSummary(record) {
+      const row = rows.find((item) => item.id === record.id);
+      if (!row) return null;
+      row.activity_type = record.activityType;
+      row.activity_date = record.activityDate;
+      row.distance_miles = record.distanceMiles;
+      row.duration_text = record.durationText;
+      row.avg_pace = record.avgPace;
+      row.avg_heart_rate = record.avgHeartRate;
+      row.summary_json = record.summaryJson;
+      row.updated_at = "2026-06-02T12:00:00.000Z";
+      return row;
+    },
     async findLatest() {
       return [...rows].sort(newestFirst)[0] || null;
     },
@@ -166,6 +278,30 @@ function createMemoryRepository() {
     async countRuns() {
       return rows.length;
     },
+  };
+}
+
+function storedRunRow({ id, fileHash, summary }) {
+  return {
+    id,
+    file_hash: fileHash,
+    source: "webhook",
+    filename: summary.file.name,
+    content_type: summary.file.contentType,
+    file_size: summary.file.size,
+    raw_storage: "memory",
+    raw_blob_path: summary.file.rawPath,
+    uploaded_at: summary.file.uploadedAt,
+    received_at: summary.file.uploadedAt,
+    activity_type: summary.details.activity,
+    activity_date: summary.details.sortDate || null,
+    distance_miles: null,
+    duration_text: null,
+    avg_pace: null,
+    avg_heart_rate: null,
+    summary_json: summary,
+    created_at: summary.file.uploadedAt,
+    updated_at: summary.file.uploadedAt,
   };
 }
 
@@ -211,10 +347,14 @@ function activitySortTime(value) {
   return Number.isFinite(time) ? time : null;
 }
 
-function fitBufferWithSport(sport, marker = 0) {
+function fitBufferWithSport(sport, marker = 0, subSport = null) {
+  const hasSubSport = subSport !== null;
   const data = Buffer.from([
-    0x40, 0x00, 0x00, 0x12, 0x00, 0x01, 0x05, 0x01, 0x02,
+    0x40, 0x00, 0x00, 0x12, 0x00, hasSubSport ? 0x02 : 0x01,
+    0x05, 0x01, 0x02,
+    ...(hasSubSport ? [0x06, 0x01, 0x02] : []),
     0x00, sport,
+    ...(hasSubSport ? [subSport] : []),
   ]);
   const buffer = Buffer.alloc(14 + data.length + 1);
   buffer.writeUInt8(14, 0);
