@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import DatabaseSetupNotice from "app/components/DatabaseSetupNotice.jsx";
+import ScrollToEnd from "app/components/ScrollToEnd.jsx";
 import UnlockScreen from "app/components/UnlockScreen.jsx";
 import { hasDashboardCookie } from "lib/auth.js";
 import { hasDatabaseUrl } from "lib/db.js";
@@ -67,7 +68,7 @@ function DashboardContent({ dashboard }) {
 
       <section>
         <ChartPanel title="Weekly Mileage" subtitle={dashboard.weeklySubtitle}>
-          <BarChart data={dashboard.weeklyMileage} valueSuffix=" mi" yTickInterval={15} />
+          <BarChart data={dashboard.weeklyMileage} valueSuffix=" mi" yTickInterval={15} minColumnWidth={62} scrollToEnd />
         </ChartPanel>
       </section>
 
@@ -119,10 +120,22 @@ function ChartPanel({ title, subtitle, children }) {
   );
 }
 
-function BarChart({ data, valueSuffix = "", compact = false, tooltipPlacement = "bar", yTickInterval = null }) {
-  const width = 760;
+function BarChart({
+  data,
+  valueSuffix = "",
+  compact = false,
+  tooltipPlacement = "bar",
+  yTickInterval = null,
+  minColumnWidth = null,
+  scrollToEnd = false,
+}) {
+  const baseWidth = 760;
   const height = compact ? 250 : 310;
   const padding = { top: 24, right: 22, bottom: 54, left: yTickInterval ? 64 : 42 };
+  const gap = minColumnWidth ? 14 : compact ? 10 : 8;
+  const width = minColumnWidth
+    ? Math.max(baseWidth, padding.left + padding.right + data.length * minColumnWidth - gap)
+    : baseWidth;
   const plotWidth = width - padding.left - padding.right;
   const plotHeight = height - padding.top - padding.bottom;
   const maxValue = Math.max(1, ...data.map((item) => item.value));
@@ -130,8 +143,9 @@ function BarChart({ data, valueSuffix = "", compact = false, tooltipPlacement = 
   const yTicks = yTickInterval
     ? Array.from({ length: Math.floor(axisMax / yTickInterval) + 1 }, (_, index) => index * yTickInterval)
     : null;
-  const gap = compact ? 10 : 8;
-  const barWidth = Math.max(8, (plotWidth - gap * Math.max(0, data.length - 1)) / Math.max(1, data.length));
+  const barWidth = minColumnWidth
+    ? Math.max(8, minColumnWidth - gap)
+    : Math.max(8, (plotWidth - gap * Math.max(0, data.length - 1)) / Math.max(1, data.length));
   const labelStep = data.length > 12 ? Math.ceil(data.length / 8) : 1;
   const bars = data.map((item, index) => {
     const valueRatio = item.value / axisMax;
@@ -155,9 +169,16 @@ function BarChart({ data, valueSuffix = "", compact = false, tooltipPlacement = 
     return { ...item, index, x, y, barHeight, tooltipText, tooltipWidth, tooltipHeight, tooltipX, tooltipY, arrowX, arrowY };
   });
 
+  const ChartScroll = scrollToEnd ? ScrollToEnd : "div";
+
   return (
-    <div className="dashboard-chart-scroll">
-      <svg className="dashboard-chart" viewBox={`0 0 ${width} ${height}`} role="img">
+    <ChartScroll className="dashboard-chart-scroll">
+      <svg
+        className="dashboard-chart"
+        style={minColumnWidth ? { minWidth: `${width}px` } : undefined}
+        viewBox={`0 0 ${width} ${height}`}
+        role="img"
+      >
         {(yTicks || [0, 0.25, 0.5, 0.75, 1]).map((tick) => {
           const y = yTicks
             ? padding.top + plotHeight - (tick / axisMax) * plotHeight
@@ -196,7 +217,7 @@ function BarChart({ data, valueSuffix = "", compact = false, tooltipPlacement = 
           ) : null
         ))}
       </svg>
-    </div>
+    </ChartScroll>
   );
 }
 
